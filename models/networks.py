@@ -143,8 +143,8 @@ def define_D(input_nc, ndf, which_model_netD,
     if use_gpu:
         assert(torch.cuda.is_available())
     if which_model_netD == 'basic':
-        # netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
-        netD = DCGAN_D(256, 6, 64, 1, 1)
+        netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
+        # netD = DCGAN_D(256, 6, 64, 1, 1)
 
     elif which_model_netD == 'n_layers':
         netD = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
@@ -153,8 +153,8 @@ def define_D(input_nc, ndf, which_model_netD,
                                   which_model_netD)
     if use_gpu:
         netD.cuda(device_id=gpu_ids[0])
-    # init_weights(netD, init_type=init_type)
-    netD.apply(weights_init)
+    init_weights(netD, init_type=init_type)
+    # netD.apply(weights_init)
     return netD
 
 
@@ -437,6 +437,7 @@ class NLayerDiscriminator(nn.Module):
 
         if use_sigmoid:
             sequence += [nn.Sigmoid()]
+            # sequence += [nn.Tanh()]
 
         self.model = nn.Sequential(*sequence)
 

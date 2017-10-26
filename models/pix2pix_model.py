@@ -27,7 +27,8 @@ class Pix2PixModel(BaseModel):
         self.netG = networks.define_G(3, opt.output_nc, opt.ngf,
                                       opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
         if self.isTrain:
-            use_sigmoid = opt.no_lsgan
+            # use_sigmoid = opt.no_lsgan
+            use_sigmoid = False
             self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf,
                                           opt.which_model_netD,
                                           opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
@@ -51,12 +52,12 @@ class Pix2PixModel(BaseModel):
             #                                     lr=opt.lr, betas=(opt.beta1, 0.999))
             # self.optimizer_D = torch.optim.Adam(self.netD.parameters(),
             #                                     lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_G = torch.optim.RMSprop(self.netG.parameters(), lr = opt.lr)
-            self.optimizer_D = torch.optim.RMSprop(self.netD.parameters(), lr = opt.lr)
+            self.optimizer_G = torch.optim.RMSprop(self.netG.parameters(), lr=opt.lr)
+            self.optimizer_D = torch.optim.RMSprop(self.netD.parameters(), lr=opt.lr)
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
-            for optimizer in self.optimizers:
-                self.schedulers.append(networks.get_scheduler(optimizer, opt))
+            # for optimizer in self.optimizers:
+            #     self.schedulers.append(networks.get_scheduler(optimizer, opt))
 
         print('---------- Networks initialized -------------')
         networks.print_network(self.netG)
@@ -114,7 +115,7 @@ class Pix2PixModel(BaseModel):
     def backward_wgan_D(self):
         real_AB = torch.cat((self.real_A, self.real_B), 1)
         self.loss_D_real = self.netD.forward(real_AB)
-        self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
+        # self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
         # The Numbers 1
         one = torch.FloatTensor([1]).cuda()
         self.loss_D_real.backward(one)
@@ -122,7 +123,7 @@ class Pix2PixModel(BaseModel):
         # stop backprop to the generator by detaching fake_B
         fake_AB = self.fake_AB_pool.query(torch.cat((self.real_A, self.fake_B), 1))
         self.loss_D_fake = self.netD.forward(fake_AB.detach())
-        self.loss_D_fake = self.loss_D_fake.view(-1, 1).mean(0)
+        # self.loss_D_fake = self.loss_D_fake.view(-1, 1).mean(0)
         # The numbers -1
         mone = one * -1
         self.loss_D_fake.backward(mone)
@@ -145,16 +146,16 @@ class Pix2PixModel(BaseModel):
         # First, G(A) should fake the discriminator
         fake_AB = torch.cat((self.real_A, self.fake_B), 1)
         self.loss_G_GAN = self.netD.forward(fake_AB)
-        self.loss_G_GAN = self.loss_G_GAN.view(-1, 1).mean(0)
-        self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_A
-        self.loss_G = self.loss_G_GAN + self.loss_G_L1
-        # self.loss_G = self.loss_G_GAN
+        # self.loss_G_GAN = self.loss_G_GAN.view(-1, 1).mean(0)
+        # self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_A
+        # self.loss_G = self.loss_G_GAN + self.loss_G_L1
+        self.loss_G = self.loss_G_GAN
         # The Numbers 1
         one = torch.FloatTensor([1]).cuda()
         self.loss_G.backward(one)
 
     def optimize_parameters(self):
-        self.forward_()
+        self.forward()
 
         self.optimizer_D.zero_grad()
         self.backward_D()
@@ -175,7 +176,7 @@ class Pix2PixModel(BaseModel):
 
     def optimize_netG_parameters(self):
         make_trainable(self.netD, False)
-        self.forward()
+        # self.forward()
         self.optimizer_G.zero_grad()
         self.backward_wgan_G()
         self.optimizer_G.step()
