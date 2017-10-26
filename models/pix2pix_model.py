@@ -115,7 +115,8 @@ class Pix2PixModel(BaseModel):
     def backward_wgan_D(self):
         real_AB = torch.cat((self.real_A, self.real_B), 1)
         self.loss_D_real = self.netD.forward(real_AB)
-        # self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
+        # print('fffffffffffffffff', self.loss_D_real.size)
+        self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
         # The Numbers 1
         one = torch.FloatTensor([1]).cuda()
         self.loss_D_real.backward(one)
@@ -123,7 +124,7 @@ class Pix2PixModel(BaseModel):
         # stop backprop to the generator by detaching fake_B
         fake_AB = self.fake_AB_pool.query(torch.cat((self.real_A, self.fake_B), 1))
         self.loss_D_fake = self.netD.forward(fake_AB.detach())
-        # self.loss_D_fake = self.loss_D_fake.view(-1, 1).mean(0)
+        self.loss_D_fake = self.loss_D_fake.view(-1, 1).mean(0)
         # The numbers -1
         mone = one * -1
         self.loss_D_fake.backward(mone)
@@ -146,7 +147,7 @@ class Pix2PixModel(BaseModel):
         # First, G(A) should fake the discriminator
         fake_AB = torch.cat((self.real_A, self.fake_B), 1)
         self.loss_G_GAN = self.netD.forward(fake_AB)
-        # self.loss_G_GAN = self.loss_G_GAN.view(-1, 1).mean(0)
+        self.loss_G_GAN = self.loss_G_GAN.view(-1, 1).mean(0)
         # self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_A
         # self.loss_G = self.loss_G_GAN + self.loss_G_L1
         self.loss_G = self.loss_G_GAN
