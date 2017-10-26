@@ -24,7 +24,7 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_iter += opt.batchSize
         model.set_input(data)
         # model.optimize_parameters()
-        # model.optimize_netD_parameters()
+        model.optimize_netD_parameters()
         # model.optimize_netG_parameters()
         if netG_iter_count < 25 or netG_iter_count % 500 == 0:
             if i != 0 and i % 100 == 0:
