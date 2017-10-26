@@ -24,20 +24,20 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_iter += opt.batchSize
         model.set_input(data)
         # model.optimize_parameters()
-        model.optimize_netD_parameters()
-        model.optimize_netG_parameters()
-        # if netG_iter_count < 25 or netG_iter_count % 500 == 0:
-        #     if i != 0 and i % 100 == 0:
-        #         model.optimize_netG_parameters()
-        #         netG_iter_count += 1
-        #     else:
-        #         pass
-        # else:
-        #     if i != 0 and i % 5 == 0:
-        #         model.optimize_netG_parameters()
-        #         netG_iter_count += 1
-        #     else:
-        #         pass
+        # model.optimize_netD_parameters()
+        # model.optimize_netG_parameters()
+        if netG_iter_count < 25 or netG_iter_count % 500 == 0:
+            if i != 0 and i % 100 == 0:
+                model.optimize_netG_parameters()
+                netG_iter_count += 1
+            else:
+                pass
+        else:
+            if i != 0 and i % 5 == 0:
+                model.optimize_netG_parameters()
+                netG_iter_count += 1
+            else:
+                pass
         if total_steps % opt.display_freq == 0:
             visualizer.display_current_results(model.get_current_visuals(), epoch)
 
