@@ -32,7 +32,8 @@ class SingleDataset(BaseDataset):
             #     tmp = A[0, ...] * 0.299 + A[1, ...] * 0.587 + A[2, ...] * 0.114
             #     A = tmp.unsqueeze(0)
         except:
-            __getitem__(self, index+1)
+            # __getitem__(self, index+1)
+            A = torch.zeros((3, self.opt.loadSize, self.opt.loadSize))
         return {'A': A, 'A_paths': A_path}
 
     def __len__(self):
