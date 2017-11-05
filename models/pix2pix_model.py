@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import os
 from collections import OrderedDict
+from torch import autograd
 from torch.autograd import Variable
 import util.util as util
 from util.image_pool import ImagePool
@@ -23,12 +24,15 @@ class Pix2PixModel(BaseModel):
                                    opt.fineSize, opt.fineSize)
         self.loss_G_GAN = Variable(torch.FloatTensor([0]).cuda())
         self.loss_G_L1 = Variable(torch.FloatTensor([0]).cuda())
+        self.loss_D = Variable(torch.FloatTensor([0]).cuda())
+        self.loss_D_with_gp = Variable(torch.FloatTensor([0]).cuda())
+
         # load/define networks
         self.netG = networks.define_G(3, opt.output_nc, opt.ngf,
                                       opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
         if self.isTrain:
-            # use_sigmoid = opt.no_lsgan
-            use_sigmoid = False
+            use_sigmoid = opt.no_lsgan
+            # use_sigmoid = False
             self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf,
                                           opt.which_model_netD,
                                           opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
@@ -112,22 +116,54 @@ class Pix2PixModel(BaseModel):
 
         self.loss_D.backward()
 
+    def calc_gradient_penalty(self):
+        # print "real_data: ", real_data.size(), fake_data.size()
+        batch_size = self.real_A.size(0)
+        alpha = torch.rand(batch_size, 1)
+        alpha = alpha.expand(batch_size, self.real_A.nelement() / batch_size).contiguous().view(
+            batch_size, 3, self.opt.finesize, self.opt.finesize)
+        alpha = alpha.cuda()
+
+        interpolates = alpha * self.real_A + ((1 - alpha) * self.fake_B)
+
+        interpolates = interpolates.cuda()
+        interpolates = Variable(interpolates, requires_grad=True)
+
+        disc_interpolates = self.netD(interpolates)
+
+        gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
+                                  grad_outputs=torch.ones(disc_interpolates.size()).cuda(
+                                  ),
+                                  create_graph=True, retain_graph=True, only_inputs=True)
+        gradients = gradients[0]
+        lambda_gp = 10  # Gradient penalty lambda hyperparameter
+        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_gp
+        return gradient_penalty
+
     def backward_wgan_D(self):
+        # real
         real_AB = torch.cat((self.real_A, self.real_B), 1)
         self.loss_D_real = self.netD.forward(real_AB)
         # print('fffffffffffffffff', self.loss_D_real.size)
         self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
-        # The Numbers 1
+        # The Numbers 1, -1
         one = torch.FloatTensor([1]).cuda()
-        self.loss_D_real.backward(one)
+        mone = one * -1
+        self.loss_D_real.backward(mone)
+
         # Fake
         # stop backprop to the generator by detaching fake_B
         fake_AB = self.fake_AB_pool.query(torch.cat((self.real_A, self.fake_B), 1))
         self.loss_D_fake = self.netD.forward(fake_AB.detach())
         self.loss_D_fake = self.loss_D_fake.view(-1, 1).mean(0)
-        # The numbers -1
-        mone = one * -1
-        self.loss_D_fake.backward(mone)
+        self.loss_D_fake.backward(one)
+
+        # train with gradient penalty
+        gradient_penalty = self.calc_gradient_penalty(self.netD, self.real_A.data, self.fake_B.data)
+        gradient_penalty.backward()
+        # print "gradien_penalty: ", gradient_penalty
+
+        self.loss_D_with_gp = self.loss_D_real - self.loss_D_fake + gradient_penalty
         self.loss_D = self.loss_D_real - self.loss_D_fake
 
     def backward_G(self):
@@ -148,12 +184,13 @@ class Pix2PixModel(BaseModel):
         fake_AB = torch.cat((self.real_A, self.fake_B), 1)
         self.loss_G_GAN = self.netD.forward(fake_AB)
         self.loss_G_GAN = self.loss_G_GAN.view(-1, 1).mean(0)
+        self.loss_G_GAN = -self.loss_G_GAN
         # self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_A
         # self.loss_G = self.loss_G_GAN + self.loss_G_L1
-        self.loss_G = self.loss_G_GAN
-        # The Numbers 1
-        one = torch.FloatTensor([1]).cuda()
-        self.loss_G.backward(one)
+        # self.loss_G = self.loss_G_GAN
+        # The Numbers -1
+        mone = -1 * torch.FloatTensor([1]).cuda()
+        self.loss_G.backward(mone)
 
     def optimize_parameters(self):
         self.forward()
@@ -175,6 +212,16 @@ class Pix2PixModel(BaseModel):
         self.backward_wgan_D()
         self.optimizer_D.step()
 
+    def optimize_netD_parameters_gp(self):
+        make_trainable(self.netD, True)
+
+        self.forward()
+        self.optimizer_D.zero_grad()
+
+        self.backward_wgan_D()
+
+        self.optimizer_D.step()
+
     def optimize_netG_parameters(self):
         make_trainable(self.netD, False)
         # self.forward()
@@ -184,11 +231,14 @@ class Pix2PixModel(BaseModel):
 
     def get_current_errors(self):
         return OrderedDict([('G_GAN', self.loss_G_GAN.data[0]),
-                            ('G_L1', self.loss_G_L1.data[0]),
                             ('D_real', self.loss_D_real.data[0]),
                             ('D_fake', self.loss_D_fake.data[0]),
-                            ('D_GAN', self.loss_D_real.data[0] - self.loss_D_fake.data[0]),
-                            ])
+                            ('D_GAN', self.loss_D.data[0]),
+                            ('D_GAN', self.loss_D.data[0]),
+                            ('D_GAN_with_gp', self.loss_D_with_gp.data[0]),
+                            # ('G_L1', self.loss_G_L1.data[0]),
+                            ]
+                           )
 
     def get_current_visuals(self):
         real_A = util.tensor2im(self.real_A.data)

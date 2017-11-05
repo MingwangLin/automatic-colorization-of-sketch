@@ -16,6 +16,13 @@ visualizer = Visualizer(opt)
 total_steps = 0
 netG_iter_count = 0
 
+MODE = 'wgan-gp' # Valid options are dcgan, wgan, or wgan-gp
+DIM = 128 # This overfits substantially; you're probably better off with 64
+critic_iters = 5 # How many critic iterations per generator iteration
+ITERS = 200000 # How many generator iterations to train for
+OUTPUT_DIM = 3072 # Number of pixels in CIFAR10 (3*32*32)
+
+
 for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
     epoch_start_time = time.time()
     epoch_iter = 0
@@ -24,8 +31,10 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         total_steps += opt.batchSize
         epoch_iter += opt.batchSize
         model.set_input(data)
+        # for j in range(critic_iters):
         # model.optimize_parameters()
-        model.optimize_netD_parameters()
+        # model.optimize_netD_parameters()
+        model.optimize_netD_parameters_gp()
         # model.optimize_netG_parameters()
         if netG_iter_count < 25 or netG_iter_count % 500 == 0:
             if i != 0 and i % 100 == 0:
