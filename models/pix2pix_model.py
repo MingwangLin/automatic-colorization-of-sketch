@@ -187,7 +187,7 @@ class Pix2PixModel(BaseModel):
                             ('G_L1', self.loss_G_L1.data[0]),
                             ('D_real', self.loss_D_real.data[0]),
                             ('D_fake', self.loss_D_fake.data[0]),
-			    ('D_GAN', self.loss_D_real.data[0] - self.loss_D_fake.data[0]),
+                            ('D_GAN', self.loss_D_real.data[0] - self.loss_D_fake.data[0]),
                             ])
 
     def get_current_visuals(self):
