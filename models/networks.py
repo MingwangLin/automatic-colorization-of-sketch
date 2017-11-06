@@ -420,7 +420,7 @@ class NLayerDiscriminator(nn.Module):
             sequence += [
                 nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
                           # kernel_size=kw, stride=2, padding=padw, bias=use_bias),
-                            kernel_size=kw, stride=2, paddin=padw),
+                            kernel_size=kw, stride=2, padding=padw),
             # norm_layer(ndf * nf_mult),
                 nn.LeakyReLU(0.2, True)
             ]

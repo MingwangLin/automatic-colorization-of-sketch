@@ -28,7 +28,7 @@ class Pix2PixModel(BaseModel):
         self.loss_D_with_gp = Variable(torch.FloatTensor([0]).cuda())
 
         # load/define networks
-        self.netG = networks.define_G(3, opt.output_nc, opt.ngf,
+        self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,
                                       opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
@@ -118,23 +118,25 @@ class Pix2PixModel(BaseModel):
 
     def calc_gradient_penalty(self):
         # print "real_data: ", real_data.size(), fake_data.size()
-        batch_size = self.real_A.size(0)
+        batch_size, c, h, w = self.real_B.size()
         alpha = torch.rand(batch_size, 1)
-        alpha = alpha.expand(batch_size, self.real_A.nelement() / batch_size).contiguous().view(
-            batch_size, 3, self.opt.finesize, self.opt.finesize)
+        alpha = alpha.expand(batch_size, c*h*w).contiguous().view(
+            batch_size, c, h, w)
         alpha = alpha.cuda()
 
-        interpolates = alpha * self.real_A + ((1 - alpha) * self.fake_B)
+        interpolates = alpha * self.real_B.data + ((1 - alpha) * self.fake_B.data)
 
         interpolates = interpolates.cuda()
         interpolates = Variable(interpolates, requires_grad=True)
+        interpolates = torch.cat((self.real_A, interpolates), 1)
 
         disc_interpolates = self.netD(interpolates)
 
         gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                                  grad_outputs=torch.ones(disc_interpolates.size()).cuda(
-                                  ),
-                                  create_graph=True, retain_graph=True, only_inputs=True)
+                                  grad_outputs=torch.ones(disc_interpolates.size()).cuda(),
+                                  create_graph=True, retain_graph=True, only_inputs=True
+                                  )
+
         gradients = gradients[0]
         lambda_gp = 10  # Gradient penalty lambda hyperparameter
         gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_gp
@@ -144,7 +146,6 @@ class Pix2PixModel(BaseModel):
         # real
         real_AB = torch.cat((self.real_A, self.real_B), 1)
         self.loss_D_real = self.netD.forward(real_AB)
-        # print('fffffffffffffffff', self.loss_D_real.size)
         self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
         # The Numbers 1, -1
         one = torch.FloatTensor([1]).cuda()
@@ -159,7 +160,7 @@ class Pix2PixModel(BaseModel):
         self.loss_D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = self.calc_gradient_penalty(self.netD, self.real_A.data, self.fake_B.data)
+        gradient_penalty = self.calc_gradient_penalty()
         gradient_penalty.backward()
         # print "gradien_penalty: ", gradient_penalty
 
@@ -190,7 +191,7 @@ class Pix2PixModel(BaseModel):
         # self.loss_G = self.loss_G_GAN
         # The Numbers -1
         mone = -1 * torch.FloatTensor([1]).cuda()
-        self.loss_G.backward(mone)
+        self.loss_G_GAN.backward(mone)
 
     def optimize_parameters(self):
         self.forward()

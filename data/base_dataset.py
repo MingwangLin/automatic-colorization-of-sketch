@@ -22,6 +22,12 @@ def get_transform(opt):
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'crop':
         transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'resize':
+        osize = [opt.loadSize, opt.loadSize]
+        # use ANTIALIAS filters for better image quality, with side effects of lower speed
+        transform_list.append(transforms.Scale(osize, Image.ANTIALIAS))
+        transform_list += [transforms.ToTensor()]
+        return transforms.Compose(transform_list)
     elif opt.resize_or_crop == 'scale_width':
         transform_list.append(transforms.Lambda(
             lambda img: __scale_width(img, opt.fineSize)))
@@ -46,19 +52,3 @@ def __scale_width(img, target_width):
     w = target_width
     h = int(target_width * oh / ow)
     return img.resize((w, h), Image.BICUBIC)
-
-
-def get_transform_for_resizing_only(opt):
-    transform_list = []
-    if opt.resize_or_crop == 'resize_and_crop':
-        osize = [opt.loadSize, opt.loadSize]
-        transform_list.append(transforms.Scale(osize, Image.BICUBIC))
-        transform_list.append(transforms.RandomCrop(opt.fineSize))
-    elif opt.resize_or_crop == 'resize':
-        osize = [opt.loadSize, opt.loadSize]
-        # use ANTIALIAS filters for better image quality, but lower speed
-        transform_list.append(transforms.Scale(osize, Image.ANTIALIAS))
-    elif opt.resize_or_crop == 'crop':
-        transform_list.append(transforms.RandomCrop(opt.fineSize))
-    transform_list += [transforms.ToTensor()]
-    return transforms.Compose(transform_list)

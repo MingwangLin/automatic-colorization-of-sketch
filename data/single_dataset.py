@@ -18,9 +18,12 @@ class SingleDataset(BaseDataset):
         self.transform = get_transform(opt)
 
     def __getitem__(self, index):
-        A_path = self.A_paths[index]
-        A_img = Image.open(A_path).convert('RGB')
-        A = self.transform(A_img)
+        try:
+            A_path = self.A_paths[index]
+            A_img = Image.open(A_path).convert('RGB')
+            A = self.transform(A_img)
+        except:
+            return self.__getitem__(index+1)
         if self.opt.which_direction == 'BtoA':
             input_nc = self.opt.output_nc
         else:
