@@ -21,7 +21,6 @@ def resize_img_with_multi_threads():
         img_num = data_tensor.size()[0]
         for j in range(img_num):
             pil_img = to_pil_image(data_tensor[j, ...])
-
             # put resized images in a new folder
             path = data['A_paths'][j]
             folder_name_index_end = path.rfind('/')
@@ -30,7 +29,7 @@ def resize_img_with_multi_threads():
             new_folder_name = old_folder_name + 'tmp'
             new_path = path.replace(old_folder_name, new_folder_name)
             pil_img.save(new_path, quality=95)
-
+            single_img_to_sketch_with_hed(new_path)
             img_count += 1
             if img_count % 10000 == 0:
                 time_end = time.time()
@@ -76,6 +75,23 @@ def img_to_sketch_with_hed(data_path):
             time_start = time_end
     print('finished processing {} images !'.format(img_count))
     return
+
+
+def single_img_to_sketch_with_hed(path):
+    img = cv2.imread(path)
+    img = img.transpose((2, 0, 1))
+    light_map = np.zeros(img.shape, dtype=np.float)
+    for channel in range(3):
+        light_map[channel] = get_light_map_single(img[channel])
+    light_map = normalize_pic(light_map)
+    light_map = light_map[None]
+    light_map = light_map.transpose((1, 2, 3, 0))
+    line_mat = mod.predict(light_map, batch_size=1)
+    line_mat = line_mat.transpose((3, 1, 2, 0))[0]
+    line_mat = np.amax(line_mat, 2)
+    adjust_and_save_img(line_mat, path)
+    return
+
 
 # data_path = '/home/lin/Downloads/new512'
 # img_to_sketch_with_hed(data_path)

@@ -123,14 +123,14 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
         netG = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout, gpu_ids=gpu_ids)
     elif which_model_netG == 'unet_256':
         netG = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout, gpu_ids=gpu_ids)
-        # netG = DCGAN_G(256, 256*256, 3, 64, 1, 1)
+        # netG = DCGAN_G(256, 256, 3, 64, 1, 1)
 
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
     if len(gpu_ids) > 0:
         netG.cuda(device_id=gpu_ids[0])
     init_weights(netG, init_type=init_type)
-    # netG.apply(weights_init)
+    netG.apply(weights_init)
     return netG
 
 
@@ -143,8 +143,9 @@ def define_D(input_nc, ndf, which_model_netD,
     if use_gpu:
         assert(torch.cuda.is_available())
     if which_model_netD == 'basic':
-        netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
-        # netD = DCGAN_D(256, 6, 64, 1, 1)
+        # netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
+        # netD = DCGAN_D_fastai(256, 6, 64, 1, 1)
+        netD = DCGAN_D_wgan(256, 256, 6, 64, 1, 1)
 
     elif which_model_netD == 'n_layers':
         netD = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
@@ -153,8 +154,8 @@ def define_D(input_nc, ndf, which_model_netD,
                                   which_model_netD)
     if use_gpu:
         netD.cuda(device_id=gpu_ids[0])
-    init_weights(netD, init_type=init_type)
-    # netD.apply(weights_init)
+    # init_weights(netD, init_type=init_type)
+    netD.apply(weights_init)
     return netD
 
 
@@ -444,20 +445,20 @@ class NLayerDiscriminator(nn.Module):
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):
-        if len(self.gpu_ids) and isinstance(input.data, torch.cuda.FloatTensor):
-            return nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-        else:
-            return self.model(input)
+        # if len(self.gpu_ids) and isinstance(input.data, torch.cuda.FloatTensor):
+        #     return nn.parallel.data_parallel(self.model, input, self.gpu_ids)
+        # else:
+        return self.model(input)
 
 
-class DCGAN_D(nn.Module):
+class DCGAN_D_fastai(nn.Module):
     def conv_block(self, main, name, inf, of, a, b, c, bn=True):
         main.add_module(f'{name}-{inf}.{of}.conv', nn.Conv2d(inf, of, a, b, c, bias=False))
-        main.add_module(f'{name}-{of}.batchnorm', nn.BatchNorm2d(of))
+        # main.add_module(f'{name}-{of}.batchnorm', nn.BatchNorm2d(of))
         main.add_module(f'{name}-{of}.relu', nn.LeakyReLU(0.2, inplace=True))
 
     def __init__(self, isize, nc, ndf, ngpu, n_extra_layers=0):
-        super(DCGAN_D, self).__init__()
+        super(DCGAN_D_fastai, self).__init__()
         self.ngpu = ngpu
         assert isize % 16 == 0, "isize has to be a multiple of 16"
 
@@ -479,10 +480,63 @@ class DCGAN_D(nn.Module):
 
 
     def forward(self, input):
-        gpu_ids = None
-        if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
-            gpu_ids = range(self.ngpu)
-        output = nn.parallel.data_parallel(self.main, input, gpu_ids)
+        # gpu_ids = None
+        # if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
+        #     gpu_ids = range(self.ngpu)
+        # output = nn.parallel.data_parallel(self.main, input, gpu_ids)
+        # output = output.mean(0)
+        # return output.view(1)
+        output = self.main(input)
+        output = output.mean(0)
+        return output.view(1)
+
+
+class DCGAN_D_wgan(nn.Module):
+    def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0):
+        super(DCGAN_D_wgan, self).__init__()
+        self.ngpu = ngpu
+        assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+        main = nn.Sequential()
+        # input is nc x isize x isize
+        main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
+                        nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
+        main.add_module('initial.relu.{0}'.format(ndf),
+                        nn.LeakyReLU(0.2, inplace=True))
+        csize, cndf = isize / 2, ndf
+
+        # Extra layers
+        for t in range(n_extra_layers):
+            main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
+                            nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
+            main.add_module('extra-layers-{0}.{1}.batchnorm'.format(t, cndf),
+                            nn.BatchNorm2d(cndf))
+            main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
+                            nn.LeakyReLU(0.2, inplace=True))
+
+        while csize > 4:
+            in_feat = cndf
+            out_feat = cndf * 2
+            main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
+                            nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
+            main.add_module('pyramid.{0}.batchnorm'.format(out_feat),
+                            nn.BatchNorm2d(out_feat))
+            main.add_module('pyramid.{0}.relu'.format(out_feat),
+                            nn.LeakyReLU(0.2, inplace=True))
+            cndf = cndf * 2
+            csize = csize / 2
+
+        # state size. K x 4 x 4
+        main.add_module('final.{0}-{1}.conv'.format(cndf, 1),
+                        nn.Conv2d(cndf, 1, 4, 1, 0, bias=False))
+        self.main = main
+
+    def forward(self, input):
+        # if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
+        #     output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        # else:
+        #     output = self.main(input)
+        output = self.main(input)
         output = output.mean(0)
         return output.view(1)
 
@@ -498,7 +552,9 @@ class DCGAN_G(nn.Module):
         assert isize % 16 == 0, "isize has to be a multiple of 16"
 
         cngf, tisize = ngf // 2, 4
-        while tisize != isize: cngf *= 2; tisize *= 2
+        while tisize != isize:
+            cngf *= 2
+            tisize *= 2
 
         main = nn.Sequential()
         self.deconv_block(main, 'initial', nz, cngf, 4, 1, 0)
@@ -515,4 +571,7 @@ class DCGAN_G(nn.Module):
         main.add_module(f'final.{cngf}-{nc}.convt', nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
         main.add_module(f'final.{nc}.tanh', nn.Tanh())
         self.main = main
+        
+    def forward(self, input):
+        return self.main(input)
 

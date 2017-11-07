@@ -23,8 +23,8 @@ class Pix2PixModel(BaseModel):
         self.input_B = self.Tensor(opt.batchSize, opt.output_nc,
                                    opt.fineSize, opt.fineSize)
         self.loss_G_GAN = Variable(torch.FloatTensor([0]).cuda())
-        self.loss_G_L1 = Variable(torch.FloatTensor([0]).cuda())
-        self.loss_D = Variable(torch.FloatTensor([0]).cuda())
+        # self.loss_G_L1 = Variable(torch.FloatTensor([0]).cuda())
+        # self.loss_D = Variable(torch.FloatTensor([0]).cuda())
         self.loss_D_with_gp = Variable(torch.FloatTensor([0]).cuda())
 
         # load/define networks
@@ -80,6 +80,7 @@ class Pix2PixModel(BaseModel):
     def forward(self):
         self.real_A = Variable(self.input_A)
         self.fake_B = self.netG.forward(self.real_A)
+        # print('self.fake_B', self.fake_B.size())
         self.real_B = Variable(self.input_B)
 
     def forward_with_noise(self):
@@ -116,56 +117,51 @@ class Pix2PixModel(BaseModel):
 
         self.loss_D.backward()
 
-    def calc_gradient_penalty(self):
-        # print "real_data: ", real_data.size(), fake_data.size()
+    def get_gradient_penalty(self):
         batch_size, c, h, w = self.real_B.size()
+
         alpha = torch.rand(batch_size, 1)
         alpha = alpha.expand(batch_size, c*h*w).contiguous().view(
             batch_size, c, h, w)
         alpha = alpha.cuda()
 
-        interpolates = alpha * self.real_B.data + ((1 - alpha) * self.fake_B.data)
-
-        interpolates = interpolates.cuda()
-        interpolates = Variable(interpolates, requires_grad=True)
-        interpolates = torch.cat((self.real_A, interpolates), 1)
-
-        disc_interpolates = self.netD(interpolates)
-
-        gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                                  grad_outputs=torch.ones(disc_interpolates.size()).cuda(),
+        real_B_plus_fake_B = alpha * self.real_B.data + ((1 - alpha) * self.fake_B.data)
+        real_AB_plus_fake_B = torch.cat((self.real_A.data, real_B_plus_fake_B), 1)
+        real_AB_plus_fake_B = Variable(real_AB_plus_fake_B, requires_grad=True)
+        loss_D_real_plus_fake = self.netD(real_AB_plus_fake_B)
+        gradients = autograd.grad(outputs=loss_D_real_plus_fake, inputs=real_AB_plus_fake_B,
+                                  grad_outputs=torch.ones(loss_D_real_plus_fake.size()).cuda(),
                                   create_graph=True, retain_graph=True, only_inputs=True
                                   )
-
         gradients = gradients[0]
-        lambda_gp = 10  # Gradient penalty lambda hyperparameter
+        lambda_gp = 10  # hyperparameter: Gradient penalty
         gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_gp
         return gradient_penalty
 
     def backward_wgan_D(self):
         # real
         real_AB = torch.cat((self.real_A, self.real_B), 1)
-        self.loss_D_real = self.netD.forward(real_AB)
-        self.loss_D_real = self.loss_D_real.view(-1, 1).mean(0)
+        loss_D_real = self.netD.forward(real_AB)
+        loss_D_real = loss_D_real.view(-1, 1).mean(0)
         # The Numbers 1, -1
         one = torch.FloatTensor([1]).cuda()
         mone = one * -1
-        self.loss_D_real.backward(mone)
+        loss_D_real.backward(mone)
 
         # Fake
         # stop backprop to the generator by detaching fake_B
         fake_AB = self.fake_AB_pool.query(torch.cat((self.real_A, self.fake_B), 1))
-        self.loss_D_fake = self.netD.forward(fake_AB.detach())
-        self.loss_D_fake = self.loss_D_fake.view(-1, 1).mean(0)
-        self.loss_D_fake.backward(one)
+        loss_D_fake = self.netD.forward(fake_AB.detach())
+        loss_D_fake = loss_D_fake.view(-1, 1).mean(0)
+        loss_D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = self.calc_gradient_penalty()
+        gradient_penalty = self.get_gradient_penalty()
         gradient_penalty.backward()
         # print "gradien_penalty: ", gradient_penalty
 
-        self.loss_D_with_gp = self.loss_D_real - self.loss_D_fake + gradient_penalty
-        self.loss_D = self.loss_D_real - self.loss_D_fake
+        self.loss_D_with_gp = loss_D_real - loss_D_fake + gradient_penalty
+        self.loss_D = loss_D_real - loss_D_fake
 
     def backward_G(self):
         # First, G(A) should fake the discriminator
@@ -232,10 +228,9 @@ class Pix2PixModel(BaseModel):
 
     def get_current_errors(self):
         return OrderedDict([('G_GAN', self.loss_G_GAN.data[0]),
-                            ('D_real', self.loss_D_real.data[0]),
-                            ('D_fake', self.loss_D_fake.data[0]),
-                            ('D_GAN', self.loss_D.data[0]),
-                            ('D_GAN', self.loss_D.data[0]),
+                            # ('D_real', self.loss_D_real.data[0]),
+                            # ('D_fake', self.loss_D_fake.data[0]),
+                            # ('D_GAN', self.loss_D.data[0]),
                             ('D_GAN_with_gp', self.loss_D_with_gp.data[0]),
                             # ('G_L1', self.loss_G_L1.data[0]),
                             ]
