@@ -38,17 +38,17 @@ def resize_and_extract_sketch_with_multiprocess():
             folder_name_index_end = path.rfind('/')
             folder_name_index_start = path.rfind('/', 0, folder_name_index_end)
             old_folder_name = path[folder_name_index_start + 1:folder_name_index_end]
-
+            # save 515*512 image
             small_img_folder_name = old_folder_name + '512'
             small_img_path = path.replace(old_folder_name, small_img_folder_name)
             pil_img.save(small_img_path, quality=95)
-
+            # save 256*256 image
             smaller_img_folder_name = old_folder_name + '256'
             smaller_img_path = path.replace(old_folder_name, smaller_img_folder_name)
             smaller_img_size = 256
             pil_img_smaller = pil_img.resize((smaller_img_size, smaller_img_size), Image.ANTIALIAS)
             pil_img_smaller.save(smaller_img_path, quality=95)
-
+            # extract sketch and save
             sketch_folder_name = old_folder_name + 'sketch'
             sketch_path = path.replace(old_folder_name, sketch_folder_name)
             single_img_to_sketch_with_hed(small_img_path, sketch_path)
