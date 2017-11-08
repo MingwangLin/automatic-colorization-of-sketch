@@ -24,8 +24,8 @@ class Pix2PixModel(BaseModel):
                                    opt.fineSize, opt.fineSize)
         self.loss_G_GAN = Variable(torch.FloatTensor([0]).cuda())
         # self.loss_G_L1 = Variable(torch.FloatTensor([0]).cuda())
-        # self.loss_D = Variable(torch.FloatTensor([0]).cuda())
-        self.loss_D_with_gp = Variable(torch.FloatTensor([0]).cuda())
+        self.loss_D = Variable(torch.FloatTensor([0]).cuda())
+        # self.loss_D_with_gp = Variable(torch.FloatTensor([0]).cuda())
 
         # load/define networks
         self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,
@@ -121,7 +121,7 @@ class Pix2PixModel(BaseModel):
         batch_size, c, h, w = self.real_B.size()
 
         alpha = torch.rand(batch_size, 1)
-        alpha = alpha.expand(batch_size, c*h*w).contiguous().view(
+        alpha = alpha.expand(batch_size, c * h * w).contiguous().view(
             batch_size, c, h, w)
         alpha = alpha.cuda()
 
@@ -156,11 +156,11 @@ class Pix2PixModel(BaseModel):
         loss_D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = self.get_gradient_penalty()
-        gradient_penalty.backward()
+        # gradient_penalty = self.get_gradient_penalty()
+        # gradient_penalty.backward()
         # print "gradien_penalty: ", gradient_penalty
 
-        self.loss_D_with_gp = loss_D_real - loss_D_fake + gradient_penalty
+        # self.loss_D_with_gp = loss_D_real - loss_D_fake + gradient_penalty
         self.loss_D = loss_D_real - loss_D_fake
 
     def backward_G(self):
@@ -231,7 +231,7 @@ class Pix2PixModel(BaseModel):
                             # ('D_real', self.loss_D_real.data[0]),
                             # ('D_fake', self.loss_D_fake.data[0]),
                             # ('D_GAN', self.loss_D.data[0]),
-                            ('D_GAN_with_gp', self.loss_D_with_gp.data[0]),
+                            ('D_GAN', self.loss_D.data[0]),
                             # ('G_L1', self.loss_G_L1.data[0]),
                             ]
                            )
