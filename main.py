@@ -3,7 +3,7 @@ import time
 from data.data_loader import CreateDataLoader
 from data.future_vision import to_pil_image
 from util.util import mkdir
-from stroke_extraction.stroke_extraction_filter import single_img_to_sketch_with_hed
+from stroke_extraction.stroke_extraction_filter import img_to_sketch_with_hed
 from options.train_options import TrainOptions
 from PIL import Image
 
@@ -78,46 +78,6 @@ def resize_and_extract_sketch_with_multiprocess():
 
 resize_and_extract_sketch_with_multiprocess()
 
-def img_to_sketch_with_hed(data_path):
-    img_list = os.listdir(data_path)
-    img_count = 0
-    time_start = time.time()
-    for img_file in img_list[:100]:
-        file_path = '{}/{}'.format(data_path, img_file)
-        try:
-            img = cv2.imread(file_path)
-            # resize img
-            img = cv2.resize(img, (512, 512), interpolation=cv2.INTER_AREA)
-        except:
-            print('problematic file:', file_path)
-            continue
-        if img is None:
-            print('problematic file:', file_path)
-            continue
-        else:
-            img = img.transpose((2, 0, 1))
-            light_map = np.zeros(img.shape, dtype=np.float)
-            for channel in range(3):
-                light_map[channel] = get_light_map_single(img[channel])
-            light_map = normalize_pic(light_map)
-            light_map = light_map[None]
-            light_map = light_map.transpose((1, 2, 3, 0))
-            line_mat = mod.predict(light_map, batch_size=1)
-            line_mat = line_mat.transpose((3, 1, 2, 0))[0]
-            line_mat = np.amax(line_mat, 2)
-            old_file_location = 'full'
-            new_file_location = 'hed'
-            new_path = file_path.replace(old_file_location, new_file_location)
-            path = new_path, new_path
-            print('newpath', new_path)
-            adjust_and_save_img(line_mat, 512, path)
-            img_count += 1
-        if img_count % 1000 == 0:
-            time_end = time.time()
-            print('{} images processed! time cost{}'.format(img_count, time_end - time_start))
-            time_start = time_end
-    print('finished processing {} images !'.format(img_count))
-    return
 
 
 # img_to_sketch_with_hed(data_path='/home/lin/Downloads/boorucp/full')
