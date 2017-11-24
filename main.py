@@ -77,7 +77,7 @@ def resize_and_extract_sketch_with_multiprocess():
                 print('{} images processed! time cost{}'.format(img_count, time_end - time_start))
                 time_start = time_end
     return
-# img_to_sketch_with_hed(data_path='/home/lin/Downloads/boorucp/full/jkkkkj.jpg')
+resize_and_extract_sketch_with_multiprocess()
 
 
 def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
