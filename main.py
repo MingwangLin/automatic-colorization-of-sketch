@@ -2,6 +2,7 @@ import os
 from data.data_loader import CreateDataLoader
 from data.future_vision import to_pil_image
 from util.helper import *
+from util.util import mkdir
 from options.train_options import TrainOptions
 from keras.models import load_model
 from PIL import Image
@@ -37,28 +38,37 @@ def resize_and_extract_sketch_with_multiprocess():
             #     pass
             # else:
             # delete middle dir name
-            index_end = path.rfind('/')
-            index_start = path.rfind('/', 0, index_end)
-            path = path[:index_start] + path[index_end:]
-
+            # index_end = path.rfind('/')
+            # index_start = path.rfind('/', 0, index_end)
+            # path = path[:index_start] + path[index_end:]
+            #
             folder_name_index_end = path.rfind('/')
             folder_name_index_start = path.rfind('/', 0, folder_name_index_end)
             old_folder_name = path[folder_name_index_start + 1:folder_name_index_end]
+
             # save 515*512 image
             small_img_folder_name = old_folder_name + '512'
             small_img_path = path.replace(old_folder_name, small_img_folder_name)
+            mkdir(small_img_path[:folder_name_index_end])
             pil_img.save(small_img_path, quality=95)
+
             # save 256*256 image
             smaller_img_folder_name = old_folder_name + '286'
             smaller_img_path = path.replace(old_folder_name, smaller_img_folder_name)
+            mkdir(small_img_path[:folder_name_index_end])
             smaller_img_size = 286
             pil_img_smaller = pil_img.resize((smaller_img_size, smaller_img_size), Image.ANTIALIAS)
             pil_img_smaller.save(smaller_img_path, quality=95)
+
             # extract sketch and save
             small_sketch_folder_name = old_folder_name + 'sketch512'
             small_sketch_path = path.replace(old_folder_name, small_sketch_folder_name)
+            mkdir(small_img_path[:folder_name_index_end])
+
             smaller_sketch_folder_name = old_folder_name + 'sketch286'
             smaller_sketch_path = path.replace(old_folder_name, smaller_sketch_folder_name)
+            mkdir(small_img_path[:folder_name_index_end])
+
             single_img_to_sketch_with_hed(raw_path=small_img_path, new_img_size=286,
                                           new_path=(small_sketch_path, smaller_sketch_path))
             img_count += 1
@@ -67,6 +77,7 @@ def resize_and_extract_sketch_with_multiprocess():
                 print('{} images processed! time cost{}'.format(img_count, time_end - time_start))
                 time_start = time_end
     return
+# img_to_sketch_with_hed(data_path='/home/lin/Downloads/boorucp/full/jkkkkj.jpg')
 
 
 def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
@@ -127,7 +138,7 @@ def img_to_sketch_with_hed(data_path):
     return
 
 
-img_to_sketch_with_hed(data_path='/home/lin/Downloads/boorucp/full')
+# img_to_sketch_with_hed(data_path='/home/lin/Downloads/boorucp/full')
 
 
 def resize_img(data_path, img_size_resized):
