@@ -228,7 +228,7 @@ def adjust_and_save_img(img, new_img_size, path):
     mat[mat > 255] = 255
     mat = mat.astype(np.uint8)
     mat = ndimage.median_filter(mat, 1)
-    # cv2.imwrite(path[0], mat)
+    cv2.imwrite(path[0], mat)
     img = cv2.resize(mat, (new_img_size, new_img_size), interpolation=cv2.INTER_AREA)
     cv2.imwrite(path[1], img)
     return
