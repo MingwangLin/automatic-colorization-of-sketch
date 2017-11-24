@@ -15,12 +15,12 @@ dataset_size = len(dataloader)
 def resize_and_extract_sketch_with_multiprocess():
     img_count = 0
     time_start = time.time()
-    # data_path = '/home/lin/Pictures/oa'
-    # data_dir = os.listdir(data_path)
+    # data_path = '/home/lin/Pictures/ndsketch286/'
+    # name_list = os.listdir(data_path)
     # path_list = []
-    # for img_name in data_dir:
-    #     img_path = os.path.join(data_path, img_name)
-    #     # print(dir_path)
+    # for img_name in name_list:
+    #     raw_path = '/home/lin/Pictures/nd/nd'
+    #     img_path = os.path.join(raw_path, img_name)
     #     path_list += [img_path]
     for i, data in enumerate(dataloader):
         # print('data', data)
@@ -29,7 +29,12 @@ def resize_and_extract_sketch_with_multiprocess():
         for j in range(img_num):
             pil_img = to_pil_image(data_tensor[j, ...])
             path = data['A_paths'][j]
-
+            # print(path)
+            # print(path_list[:5])
+            # if path in path_list:
+            #     # print('----------------------------------------')
+            #     pass
+            # else:
             # delete middle dir name
             index_end = path.rfind('/')
             index_start = path.rfind('/', 0, index_end)
@@ -43,15 +48,18 @@ def resize_and_extract_sketch_with_multiprocess():
             small_img_path = path.replace(old_folder_name, small_img_folder_name)
             pil_img.save(small_img_path, quality=95)
             # save 256*256 image
-            smaller_img_folder_name = old_folder_name + '256'
+            smaller_img_folder_name = old_folder_name + '286'
             smaller_img_path = path.replace(old_folder_name, smaller_img_folder_name)
-            smaller_img_size = 256
+            smaller_img_size = 286
             pil_img_smaller = pil_img.resize((smaller_img_size, smaller_img_size), Image.ANTIALIAS)
             pil_img_smaller.save(smaller_img_path, quality=95)
             # extract sketch and save
-            sketch_folder_name = old_folder_name + 'sketch'
-            sketch_path = path.replace(old_folder_name, sketch_folder_name)
-            single_img_to_sketch_with_hed(small_img_path, sketch_path)
+            small_sketch_folder_name = old_folder_name + 'sketch512'
+            small_sketch_path = path.replace(old_folder_name, small_sketch_folder_name)
+            smaller_sketch_folder_name = old_folder_name + 'sketch286'
+            smaller_sketch_path = path.replace(old_folder_name, smaller_sketch_folder_name)
+            single_img_to_sketch_with_hed(raw_path=small_img_path, new_img_size=286,
+                                          new_path=(small_sketch_path, smaller_sketch_path))
             img_count += 1
             if img_count % 10000 == 0:
                 time_end = time.time()
@@ -60,7 +68,7 @@ def resize_and_extract_sketch_with_multiprocess():
     return
 
 
-def single_img_to_sketch_with_hed(raw_path, new_path):
+def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
     img = cv2.imread(raw_path)
     img = img.transpose((2, 0, 1))
     light_map = np.zeros(img.shape, dtype=np.float)
@@ -72,11 +80,8 @@ def single_img_to_sketch_with_hed(raw_path, new_path):
     line_mat = mod.predict(light_map, batch_size=1)
     line_mat = line_mat.transpose((3, 1, 2, 0))[0]
     line_mat = np.amax(line_mat, 2)
-    adjust_and_save_img(line_mat, new_img_size=256, path=new_path)
+    adjust_and_save_img(line_mat, new_img_size, path=new_path)
     return
-
-
-resize_and_extract_sketch_with_multiprocess()
 
 
 def img_to_sketch_with_hed(data_path):
@@ -87,6 +92,8 @@ def img_to_sketch_with_hed(data_path):
         file_path = '{}/{}'.format(data_path, img_file)
         try:
             img = cv2.imread(file_path)
+            # resize img
+            img = cv2.resize(img, (512, 512), interpolation=cv2.INTER_AREA)
         except:
             print('problematic file:', file_path)
             continue
@@ -104,10 +111,12 @@ def img_to_sketch_with_hed(data_path):
             line_mat = mod.predict(light_map, batch_size=1)
             line_mat = line_mat.transpose((3, 1, 2, 0))[0]
             line_mat = np.amax(line_mat, 2)
-            new_file_location = 'news'
-            old_file_location = 'new512'
+            new_file_location = 'mangasketch'
+            old_file_location = 'manga'
             new_path = file_path.replace(old_file_location, new_file_location)
-            adjust_and_save_img(line_mat, new_path)
+            path = new_path, new_path
+            print('newpath', new_path)
+            adjust_and_save_img(line_mat, 512, path)
             img_count += 1
         if img_count % 1000 == 0:
             time_end = time.time()
@@ -115,6 +124,9 @@ def img_to_sketch_with_hed(data_path):
             time_start = time_end
     print('finished processing {} images !'.format(img_count))
     return
+
+
+# img_to_sketch_with_hed(data_path='/home/lin/Pictures/manga')
 
 
 def resize_img(data_path, img_size_resized):
@@ -171,39 +183,6 @@ def scale_img(data_path, scale_size):
     print('finished processing {} images !'.format(img_count))
 
 
-def edge_detector(img, img_to_grayscale, img_to_blur, blur_size, lower_threshold, upper_threshold):
-    if img_to_blur:
-        img = cv2.GaussianBlur(img, (blur_size, blur_size), 0)
-    if img_to_grayscale:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    sketch = cv2.Canny(img, lower_threshold, upper_threshold)
-    sketch = cv2.bitwise_not(sketch)
-    return sketch
-
-
-def img_to_sketch(data_path):
-    img_list = os.listdir(data_path)
-    img_count = 0
-    for img_file in img_list:
-        file_path = '{}/{}'.format(data_path, img_file)
-        try:
-            img = cv2.imread(file_path)
-        except:
-            print('problematic file:', file_path)
-            continue
-        if img is None:
-            print('problematic file:', file_path)
-            continue
-        else:
-            sketch = edge_detector(img, 1, 1, 3, 50, 250)
-            cv2.imwrite(file_path, sketch)
-        img_count += 1
-        if img_count % 100 == 0:
-            print('{} images processed!'.format(img_count), end='\r')
-
-    print('finished processing {} images !'.format(img_count))
-
-
 def batch_img_to_sketch_with_hed(data_path):
     img_list = os.listdir(data_path)
     img_count = 0
@@ -251,23 +230,3 @@ def batch_img_to_sketch_with_hed(data_path):
         batch_count += 1
         log(2)
     print('finished processing {} images !'.format(img_count))
-
-#
-#
-# # black border
-# data_path = '/home/lin/Downloads/new-sketch-512/'
-# scale_img(data_path, scale_size=512)
-# img_to_sketch_with_hed(data_path)
-# scale_img(data_path, scale_size=256)
-# add_img_with_black_border(data_path, img_size=256)
-#
-# data_path = '/home/lin/Downloads/new-512/'
-# scale_img(data_path, scale_size=256)
-# add_img_with_black_border(data_path, img_size=256)
-#
-# # resize
-# data_path = '/home/lin/Pictures/nd5121'
-# scale_img(data_path, scale_size=512)
-# img_to_sketch_with_hed(data_path)
-
-# resize_img(data_path, img_size_resized=256)
