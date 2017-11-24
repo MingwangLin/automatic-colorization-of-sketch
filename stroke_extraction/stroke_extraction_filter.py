@@ -1,7 +1,26 @@
 import cv2
 import os
 import numpy as np
+from util.helper import *
+from keras.models import load_model
 
+mod = load_model('data/mod.h5')
+
+
+def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
+    img = cv2.imread(raw_path)
+    img = img.transpose((2, 0, 1))
+    light_map = np.zeros(img.shape, dtype=np.float)
+    for channel in range(3):
+        light_map[channel] = get_light_map_single(img[channel])
+    light_map = normalize_pic(light_map)
+    light_map = light_map[None]
+    light_map = light_map.transpose((1, 2, 3, 0))
+    line_mat = mod.predict(light_map, batch_size=1)
+    line_mat = line_mat.transpose((3, 1, 2, 0))[0]
+    line_mat = np.amax(line_mat, 2)
+    adjust_and_save_img(line_mat, new_img_size, path=new_path)
+    return
 
 def high_pass_filter(img):
     img_gray = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2GRAY)

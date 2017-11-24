@@ -1,14 +1,12 @@
 import os
+import time
 from data.data_loader import CreateDataLoader
 from data.future_vision import to_pil_image
-from util.helper import *
 from util.util import mkdir
+from stroke_extraction.stroke_extraction_filter import single_img_to_sketch_with_hed
 from options.train_options import TrainOptions
-from keras.models import load_model
 from PIL import Image
-import time
 
-mod = load_model('data/mod.h5')
 opt = TrainOptions().parse()
 dataloader = CreateDataLoader(opt).load_data()
 dataset_size = len(dataloader)
@@ -76,20 +74,7 @@ def resize_and_extract_sketch_with_multiprocess():
     return
 
 
-def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
-    img = cv2.imread(raw_path)
-    img = img.transpose((2, 0, 1))
-    light_map = np.zeros(img.shape, dtype=np.float)
-    for channel in range(3):
-        light_map[channel] = get_light_map_single(img[channel])
-    light_map = normalize_pic(light_map)
-    light_map = light_map[None]
-    light_map = light_map.transpose((1, 2, 3, 0))
-    line_mat = mod.predict(light_map, batch_size=1)
-    line_mat = line_mat.transpose((3, 1, 2, 0))[0]
-    line_mat = np.amax(line_mat, 2)
-    adjust_and_save_img(line_mat, new_img_size, path=new_path)
-    return
+
 
 resize_and_extract_sketch_with_multiprocess()
 
