@@ -50,13 +50,11 @@ def resize_and_extract_sketch_with_multiprocess():
             # save 515*512 image
             small_img_folder_name = old_folder_name + '512'
             small_img_path = path.replace(old_folder_name, small_img_folder_name)
-            mkdir(small_img_path[:folder_name_index_end])
             pil_img.save(small_img_path, quality=95)
 
             # save 256*256 image
             smaller_img_folder_name = old_folder_name + '286'
             smaller_img_path = path.replace(old_folder_name, smaller_img_folder_name)
-            mkdir(small_img_path[:folder_name_index_end])
             smaller_img_size = 286
             pil_img_smaller = pil_img.resize((smaller_img_size, smaller_img_size), Image.ANTIALIAS)
             pil_img_smaller.save(smaller_img_path, quality=95)
@@ -64,11 +62,9 @@ def resize_and_extract_sketch_with_multiprocess():
             # extract sketch and save
             small_sketch_folder_name = old_folder_name + 'sketch512'
             small_sketch_path = path.replace(old_folder_name, small_sketch_folder_name)
-            mkdir(small_img_path[:folder_name_index_end])
 
             smaller_sketch_folder_name = old_folder_name + 'sketch286'
             smaller_sketch_path = path.replace(old_folder_name, smaller_sketch_folder_name)
-            mkdir(small_img_path[:folder_name_index_end])
 
             single_img_to_sketch_with_hed(raw_path=small_img_path, new_img_size=286,
                                           new_path=(small_sketch_path, smaller_sketch_path))
@@ -78,7 +74,6 @@ def resize_and_extract_sketch_with_multiprocess():
                 print('{} images processed! time cost{}'.format(img_count, time_end - time_start))
                 time_start = time_end
     return
-resize_and_extract_sketch_with_multiprocess()
 
 
 def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
@@ -96,6 +91,7 @@ def single_img_to_sketch_with_hed(raw_path, new_img_size, new_path):
     adjust_and_save_img(line_mat, new_img_size, path=new_path)
     return
 
+resize_and_extract_sketch_with_multiprocess()
 
 def img_to_sketch_with_hed(data_path):
     img_list = os.listdir(data_path)
