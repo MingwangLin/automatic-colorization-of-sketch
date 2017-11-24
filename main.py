@@ -37,10 +37,11 @@ def resize_and_extract_sketch_with_multiprocess():
             #     # print('----------------------------------------')
             #     pass
             # else:
+
             # delete middle dir name
-            # index_end = path.rfind('/')
-            # index_start = path.rfind('/', 0, index_end)
-            # path = path[:index_start] + path[index_end:]
+            index_end = path.rfind('/')
+            index_start = path.rfind('/', 0, index_end)
+            path = path[:index_start] + path[index_end:]
             #
             folder_name_index_end = path.rfind('/')
             folder_name_index_start = path.rfind('/', 0, folder_name_index_end)
