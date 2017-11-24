@@ -5,6 +5,7 @@ from util.helper import *
 from options.train_options import TrainOptions
 from keras.models import load_model
 from PIL import Image
+import time
 
 mod = load_model('data/mod.h5')
 opt = TrainOptions().parse()
@@ -88,7 +89,7 @@ def img_to_sketch_with_hed(data_path):
     img_list = os.listdir(data_path)
     img_count = 0
     time_start = time.time()
-    for img_file in img_list:
+    for img_file in img_list[:100]:
         file_path = '{}/{}'.format(data_path, img_file)
         try:
             img = cv2.imread(file_path)
@@ -111,8 +112,8 @@ def img_to_sketch_with_hed(data_path):
             line_mat = mod.predict(light_map, batch_size=1)
             line_mat = line_mat.transpose((3, 1, 2, 0))[0]
             line_mat = np.amax(line_mat, 2)
-            new_file_location = 'mangasketch'
-            old_file_location = 'manga'
+            old_file_location = 'full'
+            new_file_location = 'hed'
             new_path = file_path.replace(old_file_location, new_file_location)
             path = new_path, new_path
             print('newpath', new_path)
@@ -126,7 +127,7 @@ def img_to_sketch_with_hed(data_path):
     return
 
 
-# img_to_sketch_with_hed(data_path='/home/lin/Pictures/manga')
+img_to_sketch_with_hed(data_path='/home/lin/Downloads/boorucp/full')
 
 
 def resize_img(data_path, img_size_resized):
