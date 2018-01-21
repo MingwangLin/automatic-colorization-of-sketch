@@ -2,25 +2,33 @@ import os
 import string
 import random
 import argparse
-from ..util.util import string_generator
+# from ..util.util import string_generator
 
-parser = argparse.ArgumentParser('rename image')
-parser.add_argument('--dir_path', dest='dir_root', help='input directory for image ', type=str, default='')
-args = parser.parse_args()
 
-for arg in vars(args):
-    print('[%s] = ' % arg, getattr(args, arg))
+#
+# parser = argparse.ArgumentParser('rename image')
+# parser.add_argument('--dir_path', dest='dir_root', help='input directory for image ', type=str, default='')
+# args = parser.parse_args()
+#
+# for arg in vars(args):
+#     print('[%s] = ' % arg, getattr(args, arg))
+#
+# dir_root = args.dir_path
 
-dir_root = args.dir_path
+def string_generator(length):
+    chars = string.ascii_lowercase + string.digits
+    # chars = string.digits
+    return ''.join(random.SystemRandom().choice(chars) for _ in range(length))
 
-for dir_name in os.listdir(dir_root):
-    dir_path = os.path.join(dir_root, dir_name)
-    for file_name in os.listdir(dir_path):
-        img_extension = file_name.split('.')[-1]
-        oldpath = os.path.join(dir_path, file_name)
-        new_name = string_generator(length=16)
-        new_path = os.path.join(dir_path, new_name + '.' + img_extension)
-        os.rename(oldpath, new_path)
+def rename_file(dir_root):
+    for dir_name in os.listdir(dir_root):
+        dir_path = os.path.join(dir_root, dir_name)
+        for file_name in os.listdir(dir_path):
+            img_extension = file_name.split('.')[-1]
+            oldpath = os.path.join(dir_path, file_name)
+            new_name = string_generator(length=16)
+            new_path = os.path.join(dir_path, new_name + '.' + img_extension)
+            os.rename(oldpath, new_path)
 
 
 def rename_file_pairs(dir_path_a, dir_path_b):
@@ -35,3 +43,6 @@ def rename_file_pairs(dir_path_a, dir_path_b):
         oldpath_b = os.path.join(dir_path_b, file_name)
         new_path_b = os.path.join(dir_path_b, new_name + '.' + img_extension)
         os.rename(oldpath_b, new_path_b)
+
+
+rename_file(dir_root='/home/lin/Downloads/windows')

@@ -15,20 +15,20 @@ dataset_size = len(dataloader)
 def resize_and_extract_sketch_with_multiprocess():
     img_count = 0
     time_start = time.time()
-    # data_path = '/home/lin/Pictures/ndsketch286/'
-    # name_list = os.listdir(data_path)
-    # path_list = []
+    data_path = '/home/lin/Downloads/oauntsketch286/'
+    name_list = os.listdir(data_path)
+    path_list = []
     # for img_name in name_list:
-    #     raw_path = '/home/lin/Pictures/nd/nd'
-    #     img_path = os.path.join(raw_path, img_name)
-    #     path_list += [img_path]
+        # raw_path = '/home/lin/Downloads/oaunt/oa'
+        # img_path = os.path.join(raw_path, img_name)
+        # path_list += [img_path]
     for i, data in enumerate(dataloader):
         # print('data', data)
         data_tensor = data['A']
         img_num = data_tensor.size()[0]
         for j in range(img_num):
             pil_img = to_pil_image(data_tensor[j, ...])
-            path = data['A_paths'][j]
+            path = tmp_path = data['A_paths'][j]
             # print(path)
             # print(path_list[:5])
             # if path in path_list:
