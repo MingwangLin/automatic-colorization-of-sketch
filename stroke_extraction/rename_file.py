@@ -2,18 +2,6 @@ import os
 import string
 import random
 import argparse
-# from ..util.util import string_generator
-
-
-#
-# parser = argparse.ArgumentParser('rename image')
-# parser.add_argument('--dir_path', dest='dir_root', help='input directory for image ', type=str, default='')
-# args = parser.parse_args()
-#
-# for arg in vars(args):
-#     print('[%s] = ' % arg, getattr(args, arg))
-#
-# dir_root = args.dir_path
 
 def string_generator(length):
     chars = string.ascii_lowercase + string.digits
