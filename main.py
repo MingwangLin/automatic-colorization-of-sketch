@@ -15,57 +15,56 @@ dataset_size = len(dataloader)
 def resize_and_extract_sketch_with_multiprocess():
     img_count = 0
     time_start = time.time()
-    # data_path = '/home/lin/Pictures/ndsketch286/'
-    # name_list = os.listdir(data_path)
-    # path_list = []
+    data_path = '/home/lin/Downloads/oauntsketch286/'
+    name_list = os.listdir(data_path)
+    path_list = []
     # for img_name in name_list:
-    #     raw_path = '/home/lin/Pictures/nd/nd'
-    #     img_path = os.path.join(raw_path, img_name)
-    #     path_list += [img_path]
+        # raw_path = '/home/lin/Downloads/oaunt/oa'
+        # img_path = os.path.join(raw_path, img_name)
+        # path_list += [img_path]
     for i, data in enumerate(dataloader):
         # print('data', data)
         data_tensor = data['A']
         img_num = data_tensor.size()[0]
         for j in range(img_num):
             pil_img = to_pil_image(data_tensor[j, ...])
-            path = data['A_paths'][j]
+            path = tmp_path = data['A_paths'][j]
             # print(path)
             # print(path_list[:5])
-            # if path in path_list:
-            #     # print('----------------------------------------')
-            #     pass
-            # else:
+            if path in path_list:
+                # print('----------------------------------------')
+                pass
+            else:
+                # delete middle dir name
+                index_end = path.rfind('/')
+                index_start = path.rfind('/', 0, index_end)
+                path = path[:index_start] + path[index_end:]
+                #
+                folder_name_index_end = path.rfind('/')
+                folder_name_index_start = path.rfind('/', 0, folder_name_index_end)
+                old_folder_name = path[folder_name_index_start + 1:folder_name_index_end]
 
-            # delete middle dir name
-            index_end = path.rfind('/')
-            index_start = path.rfind('/', 0, index_end)
-            path = path[:index_start] + path[index_end:]
-            #
-            folder_name_index_end = path.rfind('/')
-            folder_name_index_start = path.rfind('/', 0, folder_name_index_end)
-            old_folder_name = path[folder_name_index_start + 1:folder_name_index_end]
+                # save 515*512 image
+                small_img_folder_name = old_folder_name + '512'
+                small_img_path = path.replace(old_folder_name, small_img_folder_name)
+                # pil_img.save(small_img_path, quality=95)
 
-            # save 515*512 image
-            small_img_folder_name = old_folder_name + '512'
-            small_img_path = path.replace(old_folder_name, small_img_folder_name)
-            pil_img.save(small_img_path, quality=95)
+                # save 256*256 image
+                smaller_img_folder_name = old_folder_name + '286'
+                smaller_img_path = path.replace(old_folder_name, smaller_img_folder_name)
+                smaller_img_size = 286
+                # pil_img_smaller = pil_img.resize((smaller_img_size, smaller_img_size), Image.ANTIALIAS)
+                # pil_img_smaller.save(smaller_img_path, quality=95)
 
-            # save 256*256 image
-            smaller_img_folder_name = old_folder_name + '286'
-            smaller_img_path = path.replace(old_folder_name, smaller_img_folder_name)
-            smaller_img_size = 286
-            pil_img_smaller = pil_img.resize((smaller_img_size, smaller_img_size), Image.ANTIALIAS)
-            pil_img_smaller.save(smaller_img_path, quality=95)
+                # extract sketch and save
+                small_sketch_folder_name = old_folder_name + 'sketch512'
+                small_sketch_path = path.replace(old_folder_name, small_sketch_folder_name)
 
-            # extract sketch and save
-            small_sketch_folder_name = old_folder_name + 'sketch512'
-            small_sketch_path = path.replace(old_folder_name, small_sketch_folder_name)
+                smaller_sketch_folder_name = old_folder_name + 'sketch286'
+                smaller_sketch_path = path.replace(old_folder_name, smaller_sketch_folder_name)
 
-            smaller_sketch_folder_name = old_folder_name + 'sketch286'
-            smaller_sketch_path = path.replace(old_folder_name, smaller_sketch_folder_name)
-
-            single_img_to_sketch_with_hed(raw_path=small_img_path, new_img_size=286,
-                                          new_path=(small_sketch_path, smaller_sketch_path))
+                img_to_sketch_with_hed(raw_path=tmp_path, new_img_size=286,
+                                              new_path=(small_sketch_path, smaller_sketch_path))
             img_count += 1
             if img_count % 10000 == 0:
                 time_end = time.time()

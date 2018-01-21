@@ -30,7 +30,7 @@ def get_light_map(img):
     blur = cv2.GaussianBlur(gray, (0, 0), 3)
     highPass = gray.astype(int) - blur.astype(int)
     highPass = highPass.astype(np.float)
-    highPass = highPass / 128.0
+    # highPass = highPass / 10000.0
     highPass = highPass[None]
     return highPass.transpose((1, 2, 0))
 
@@ -44,9 +44,32 @@ def get_light_map_single(img):
     gray = gray.reshape((gray.shape[0], gray.shape[1]))
     highPass = gray.astype(int) - blur.astype(int)
     highPass = highPass.astype(np.float)
-    highPass = highPass / 128.0
+    highPass = highPass / 64.0
     # print('highPass', highPass.shape, highPass)
     return highPass
+
+
+def normalize_pic(img):
+    if np.max(img) != 0:
+        img = img / (np.max(img))
+        img = img
+    return img
+
+
+def adjust_and_save_img(img, new_img_size, path):
+    mat = img.astype(np.float)
+    threshold = 0.0
+    mat[mat < threshold] = 0
+    mat = - mat + 1
+    mat = (mat * 255.0)
+    mat[mat < 0] = 0
+    mat[mat > 255] = 255
+    mat = mat.astype(np.uint8)
+    mat = ndimage.median_filter(mat, 1)
+    cv2.imwrite(path[0], mat)
+    img = cv2.resize(mat, (new_img_size, new_img_size), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(path[1], img)
+    return
 
 
 def get_light_map_drawer(img):
@@ -134,19 +157,13 @@ def high_pass_sketchkeras(img):
     print('mat_color_float', mat.shape, mat)
     # threshold = 0.1
     # mat[mat < threshold] = 0
-    mat = (1 + mat/128) * 255.0
+    mat = (1 + mat / 128) * 255.0
     print('mat_color_multi', mat.shape, mat)
     mat[mat < 0] = 0
     mat[mat > 255] = 255
     mat = mat.astype(np.uint8)
     print('mat_color', mat_color.shape)
     return mat
-
-
-def normalize_pic(img):
-    if np.max(img) != 0:
-        img = img / np.max(img)
-    return img
 
 
 def superlize_pic(img):
@@ -215,22 +232,6 @@ def show_active_img_and_save_denoise(name, img, path):
     mat = ndimage.median_filter(mat, 1)
     cv2.imshow(name, mat)
     cv2.imwrite(path, mat)
-    return
-
-
-def adjust_and_save_img(img, new_img_size, path):
-    mat = img.astype(np.float)
-    # threshold = 0.1
-    # mat[mat < threshold] = 0
-    mat = - mat + 1
-    mat = mat * 255.0
-    mat[mat < 0] = 0
-    mat[mat > 255] = 255
-    mat = mat.astype(np.uint8)
-    mat = ndimage.median_filter(mat, 1)
-    cv2.imwrite(path[0], mat)
-    img = cv2.resize(mat, (new_img_size, new_img_size), interpolation=cv2.INTER_AREA)
-    cv2.imwrite(path[1], img)
     return
 
 

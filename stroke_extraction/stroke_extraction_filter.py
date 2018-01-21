@@ -13,7 +13,7 @@ def img_to_sketch_with_hed(raw_path, new_img_size, new_path):
     light_map = np.zeros(img.shape, dtype=np.float)
     for channel in range(3):
         light_map[channel] = get_light_map_single(img[channel])
-    light_map = normalize_pic(light_map)
+    # light_map = normalize_pic(light_map)
     light_map = light_map[None]
     light_map = light_map.transpose((1, 2, 3, 0))
     line_mat = mod.predict(light_map, batch_size=1)
@@ -21,6 +21,7 @@ def img_to_sketch_with_hed(raw_path, new_img_size, new_path):
     line_mat = np.amax(line_mat, 2)
     adjust_and_save_img(line_mat, new_img_size, path=new_path)
     return
+
 
 def img_to_sketch_with_hed_with_loop(data_path):
     img_list = os.listdir(data_path)
@@ -63,6 +64,7 @@ def img_to_sketch_with_hed_with_loop(data_path):
     print('finished processing {} images !'.format(img_count))
     return
 
+
 def high_pass_filter(img):
     img_gray = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_BGR2GRAY)
     kernel_size = 3
@@ -72,7 +74,7 @@ def high_pass_filter(img):
     return img_stroke
 
 
-def canny_edge_detector(img, img_to_grayscale, img_to_blur, blur_size, lower_threshold, upper_threshold):
+def canny_edge_detector(img, img_to_blur, img_to_grayscale, blur_size, lower_threshold, upper_threshold):
     if img_to_blur:
         img = cv2.GaussianBlur(img, (blur_size, blur_size), 0)
     if img_to_grayscale:
@@ -103,4 +105,3 @@ def loop_canny_edge_detector(data_path):
             print('{} images processed!'.format(img_count), end='\r')
 
     print('finished processing {} images !'.format(img_count))
-
