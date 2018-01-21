@@ -3,7 +3,7 @@ import time
 from data.data_loader import CreateDataLoader
 from data.future_vision import to_pil_image
 from util.util import mkdir
-from stroke_extraction.stroke_extraction_filter import img_to_sketch_with_hed
+from stroke_extraction.stroke_extraction_filter import img_to_sketch_with_hed, high_pass_filter
 from options.train_options import TrainOptions
 from PIL import Image
 
@@ -64,8 +64,13 @@ def resize_and_extract_sketch_with_multiprocess():
             smaller_sketch_folder_name = old_folder_name + 'sketch286'
             smaller_sketch_path = path.replace(old_folder_name, smaller_sketch_folder_name)
 
-            single_img_to_sketch_with_hed(raw_path=small_img_path, new_img_size=286,
+            img_to_sketch_with_hed(raw_path=small_img_path, new_img_size=286,
                                           new_path=(small_sketch_path, smaller_sketch_path))
+
+            # high pass filter for comparison
+            comparison_sketch_folder_name = old_folder_name + 'highpass286'
+            smaller_highpass_path = path.replace(old_folder_name, comparison_sketch_folder_name)
+
             img_count += 1
             if img_count % 10000 == 0:
                 time_end = time.time()

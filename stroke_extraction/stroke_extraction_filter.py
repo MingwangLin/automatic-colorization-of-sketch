@@ -68,7 +68,7 @@ def high_pass_filter(img):
     kernel_size = 3
     img_blurred = cv2.GaussianBlur(img_gray, (kernel_size, kernel_size), 0)
     max_intensity_value = 255
-    img_stroke = (img_gray.astype(int) - img_blurred.astype(int)) + max_intensity_value
+    img_stroke = (img_gray.astype(int) - img_blurred.astype(int))*2 + max_intensity_value
     return img_stroke
 
 
