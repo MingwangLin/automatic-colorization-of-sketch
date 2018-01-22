@@ -41,6 +41,4 @@ def rename_file_pairs(dir_path_a, dir_path_b):
 
 
 remove_mac_DSstore()
-rename_file(dir_root='/home/lin/Downloads/singles-fullcolor')
-rename_file(dir_root='/home/lin/Downloads/C79-85-fullcolor')
 rename_file(dir_root='/home/lin/Downloads/C86-bw-p1')
