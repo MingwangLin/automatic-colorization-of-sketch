@@ -3,10 +3,17 @@ import string
 import random
 import argparse
 
+
+def remove_mac_DSstore():
+    cmd_line = 'sudo find /home/lin/Downloads -name ".DS_Store" -depth -exec rm {} \;'
+    os.system(cmd_line)
+
+
 def string_generator(length):
     chars = string.ascii_lowercase + string.digits
     # chars = string.digits
     return ''.join(random.SystemRandom().choice(chars) for _ in range(length))
+
 
 def rename_file(dir_root):
     for dir_name in os.listdir(dir_root):
@@ -33,4 +40,7 @@ def rename_file_pairs(dir_path_a, dir_path_b):
         os.rename(oldpath_b, new_path_b)
 
 
-rename_file(dir_root='/home/lin/Downloads/windows')
+remove_mac_DSstore()
+rename_file(dir_root='/home/lin/Downloads/singles-fullcolor')
+rename_file(dir_root='/home/lin/Downloads/C79-85-fullcolor')
+rename_file(dir_root='/home/lin/Downloads/C86-bw-p1')
