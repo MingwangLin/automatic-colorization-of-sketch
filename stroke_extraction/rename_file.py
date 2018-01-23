@@ -5,7 +5,8 @@ import argparse
 
 
 def remove_mac_DSstore():
-    cmd_line = 'sudo find /home/lin/Downloads -name ".DS_Store" -depth -exec rm {} \;'
+    # cmd_line = 'sudo find /home/lin/Downloads/ -name ".DS_Store" -depth -exec rm {} \;'
+    cmd_line = 'find /home/lin/Downloads/ -name ".DS_Store" -delete'
     os.system(cmd_line)
 
 
